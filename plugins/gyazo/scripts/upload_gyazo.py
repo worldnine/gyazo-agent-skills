@@ -25,6 +25,7 @@ POST https://upload.gyazo.com/api/upload （multipart/form-data）
 import argparse
 import json
 import mimetypes
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -36,6 +37,11 @@ from _gyazo_common import USER_AGENT, require_access_token
 UPLOAD_URL = "https://upload.gyazo.com/api/upload"
 
 
+def sanitize_field(value: str) -> str:
+    """multipart構造を壊す改行（CR/LF）を空白に置換する"""
+    return value.replace("\r", " ").replace("\n", " ")
+
+
 def build_multipart(fields: dict[str, str], file_path: Path) -> tuple[bytes, str]:
     """multipart/form-data ボディを組み立てる（標準ライブラリのみ）"""
     boundary = "----GyazoPluginBoundary" + uuid.uuid4().hex
@@ -45,13 +51,15 @@ def build_multipart(fields: dict[str, str], file_path: Path) -> tuple[bytes, str
         buf += (
             f'--{boundary}\r\n'
             f'Content-Disposition: form-data; name="{name}"\r\n'
-            f'\r\n{value}\r\n'
+            f'\r\n{sanitize_field(value)}\r\n'
         ).encode("utf-8")
 
+    # filename も改行・二重引用符を除去してヘッダ構造を守る
+    filename = sanitize_field(file_path.name).replace('"', "'")
     content_type = mimetypes.guess_type(str(file_path))[0] or "application/octet-stream"
     buf += (
         f'--{boundary}\r\n'
-        f'Content-Disposition: form-data; name="imagedata"; filename="{file_path.name}"\r\n'
+        f'Content-Disposition: form-data; name="imagedata"; filename="{filename}"\r\n'
         f'Content-Type: {content_type}\r\n'
         f'\r\n'
     ).encode("utf-8")
@@ -114,9 +122,14 @@ def main() -> None:
         print(f"エラー: 接続に失敗しました: {e.reason}", file=sys.stderr)
         sys.exit(1)
 
-    permalink = data.get("permalink_url", "-")
+    # permalink はAPIレスポンスを優先。Teams トークンで認証した場合のみ
+    # {org}.gyazo.com に組み直す（APIの permalink_url が gyazo.com ドメインで返り
+    # 実際は404になるため）。個人トークンへのフォールバック時は個人Gyazoに
+    # 上がっているので組み直さない（誤ったTeams URLを提示しない）。
+    permalink = data.get("permalink_url") or "-"
     image_id = data.get("image_id", "")
-    if image_id and org:
+    teams_token_used = bool(org) and token == os.environ.get("GYAZO_TEAMS_ACCESS_TOKEN")
+    if image_id and teams_token_used:
         permalink = f"https://{org}.gyazo.com/{image_id}"
 
     print("=== アップロード結果 ===")

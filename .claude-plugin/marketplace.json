@@ -14,7 +14,7 @@
       "name": "gyazo",
       "source": "./plugins/gyazo",
       "description": "Gyazoの画像取得とライブラリ検索・アップロード。Gyazo Teams対応、OCRメタデータ出力、Agent Skills標準（agentskills.io）準拠でClaude Code / pi / Hermes / Codex等で利用可。MCP不要。",
-      "version": "2.4.0",
+      "version": "2.5.0",
       "keywords": ["gyazo", "image", "screenshot", "search", "ocr", "upload"],
       "skills": [
         "./skills/gyazo-reader",

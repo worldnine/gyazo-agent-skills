@@ -13,10 +13,15 @@
   https://i.gyazo.com/{id}.png|.jpg   - 個人Gyazo（直接画像）
   https://{org}.gyazo.com/{id}        - Gyazo Teams
 
+画像の取得方法:
+  - トークン設定時: Gyazo API（/api/images/{id}）が返す画像URLを優先
+  - トークン未設定時 / API失敗時: 公開ページの og:image からフォールバック取得
+
 メタデータ取得には以下の環境変数が必要:
   - 個人Gyazo: GYAZO_ACCESS_TOKEN
   - Teams Gyazo: GYAZO_TEAMS_ACCESS_TOKEN（無ければ GYAZO_ACCESS_TOKEN にフォールバック）
 未設定時は画像のみダウンロードし、メタデータ行は出力しない（壊れない）。
+メタデータ取得の失敗は致命的ではない（画像取得にフォールバックして続行する）。
 """
 
 import re
@@ -25,6 +30,7 @@ import tempfile
 from pathlib import Path
 
 from _gyazo_common import (
+    GyazoRequestError,
     api_get,
     get_access_token,
     http_get,
@@ -42,6 +48,7 @@ OG_IMAGE_PATTERN = re.compile(
 
 
 def fetch_thumb_url(page_url: str) -> str:
+    """公開ページのHTMLから og:image のURLを抽出する（フォールバック用）"""
     html = http_get(page_url, timeout=15).decode("utf-8", errors="replace")
     m = OG_IMAGE_PATTERN.search(html)
     if not m:
@@ -50,23 +57,45 @@ def fetch_thumb_url(page_url: str) -> str:
     return m.group(1) or m.group(2)
 
 
-def download_image(image_id: str, org: str | None) -> Path:
-    thumb_url = fetch_thumb_url(page_url_for(image_id, org))
-    ext = Path(thumb_url.split("?")[0]).suffix.lower() or ".jpg"
+def save_image(image_url: str, image_id: str, *, raise_on_error: bool = False) -> Path:
+    """画像URLをダウンロードして一時ディレクトリに保存する"""
+    ext = Path(image_url.split("?")[0]).suffix.lower() or ".jpg"
     DEST_DIR.mkdir(parents=True, exist_ok=True)
     dest_file = DEST_DIR / f"{image_id}{ext}"
     if dest_file.exists() and dest_file.stat().st_size > 0:
         return dest_file
-    dest_file.write_bytes(http_get(thumb_url, timeout=30))
+    data = http_get(image_url, timeout=30, on_error="raise" if raise_on_error else "exit")
+    dest_file.write_bytes(data)
     return dest_file
 
 
-def print_metadata(image_id: str, org: str | None, token: str) -> None:
-    """API経由でメタデータを取得して KEY: VALUE 形式で出力"""
-    data = api_get(f"/api/images/{image_id}", org=org, token=token)
-    if not isinstance(data, dict):
-        return
+def fetch_api_data(image_id: str, org: str | None, token: str) -> dict | None:
+    """APIから画像情報（画像URL＋メタデータ）を取得。失敗しても致命的ではないのでNone"""
+    try:
+        data = api_get(f"/api/images/{image_id}", org=org, token=token, on_error="raise")
+    except GyazoRequestError as e:
+        print(f"# API取得をスキップ（ページ取得にフォールバック）: {e}", file=sys.stderr)
+        return None
+    return data if isinstance(data, dict) else None
 
+
+def download_image(image_id: str, org: str | None, api_data: dict | None) -> Path:
+    # トークン設定時: APIレスポンスの画像URLを第一候補にする
+    # （非公開・Teams画像でもページのHTML構造に依存せず取得できる）
+    if api_data:
+        for image_url in (api_data.get("url"), api_data.get("thumb_url")):
+            if not image_url:
+                continue
+            try:
+                return save_image(image_url, image_id, raise_on_error=True)
+            except GyazoRequestError as e:
+                print(f"# API画像URLからの取得に失敗、ページから再試行: {e}", file=sys.stderr)
+    # フォールバック: 公開ページの og:image から取得
+    return save_image(fetch_thumb_url(page_url_for(image_id, org)), image_id)
+
+
+def print_metadata(data: dict) -> None:
+    """APIレスポンスからメタデータを KEY: VALUE 形式で出力"""
     meta = data.get("metadata") or {}
     # Gyazo API は OCR を metadata.ocr 配下に返す（トップレベルに無い場合もあるため両対応）
     ocr = meta.get("ocr") or data.get("ocr") or {}
@@ -107,18 +136,14 @@ def main() -> None:
     url = sys.argv[1]
     image_id, org = parse_gyazo_url(url)
 
-    dest = download_image(image_id, org)
+    token = get_access_token(org)
+    api_data = fetch_api_data(image_id, org, token) if token else None
+
+    dest = download_image(image_id, org, api_data)
     print(dest)
 
-    token = get_access_token(org)
-    if token:
-        # メタデータ取得失敗は致命的ではない（画像は取れているので無視して続行）
-        try:
-            print_metadata(image_id, org, token)
-        except SystemExit:
-            raise
-        except Exception as e:
-            print(f"# メタデータ取得をスキップ: {e}", file=sys.stderr)
+    if api_data:
+        print_metadata(api_data)
 
 
 if __name__ == "__main__":

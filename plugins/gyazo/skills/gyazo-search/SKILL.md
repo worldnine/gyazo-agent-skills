@@ -29,15 +29,15 @@ URLが既にメッセージに含まれている場合は **gyazo-reader** ス�
 
 ## 使い方
 
-`scripts/search_gyazo.py` はプラグインルート直下の `scripts/` にある。スキルディレクトリの場所（この SKILL.md を読んだパス）からプラグインルートを特定して実行する。
+`scripts/search_gyazo.py` はこの SKILL.md から見て `../../scripts/search_gyazo.py` にある
+（スキルディレクトリ → `skills/` → プラグインルート直下の `scripts/`）。
 
 ```bash
-# 汎用（プラグインルートを直接指定。ghq 管理下の例）
-python3 ~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/scripts/search_gyazo.py "TAO"
-python3 ~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/scripts/search_gyazo.py "TAO" --team your-org
-
 # Claude Code のプラグイン環境では ${CLAUDE_PLUGIN_ROOT} がプラグインルートを指す
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/search_gyazo.py" "invoice" --limit 5
+
+# その他のエージェント: この SKILL.md のあるディレクトリから相対で解決する
+python3 "<この SKILL.md のあるディレクトリ>/../../scripts/search_gyazo.py" "TAO" --team your-org
 ```
 
 ### クエリ構文（Gyazo公式サーバーサイド検索）
@@ -49,7 +49,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/search_gyazo.py" "invoice" --limit 5
 ### 出力例
 
 ```
-4件マッチ（上位3件表示）
+4件取得（上位3件表示、取得上限 --max=500）
 
 1. https://{your-org}.gyazo.com/550de223175eda69927cae900c38b70e
    2026-08-18T04:22:40+0000 | app=Ghostty

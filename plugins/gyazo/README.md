@@ -1,6 +1,6 @@
 # gyazo
 
-Gyazoの画像取得とライブラリ検索を行うマルチエージェント向けプラグイン（Claude Code / pi / Hermes 対応）。
+Gyazoの画像取得・ライブラリ検索・アップロードを行うマルチエージェント向けプラグイン（Claude Code / pi / Hermes 対応）。
 
 ## 含まれるスキル
 
@@ -23,15 +23,22 @@ Gyazoの画像取得とライブラリ検索を行うマルチエージェント
 
 このプラグインは Claude Code 専用ではなく、**Agent Skills 標準（agentskills.io）に準拠**しています。
 プラグインルート直下の `plugin.json` は Agent Plugins 1.0 形式です。
-スキルは `skills/gyazo-reader` と `skills/gyazo-search` の2つです。
+スキルは `skills/gyazo-reader`、`skills/gyazo-search`、`skills/gyazo-upload` の3つです。
+
+まずリポジトリを任意の場所に clone します（以下、clone 先を `<REPO>` と表記）:
+
+```bash
+git clone https://github.com/worldnine/gyazo-plugin.git
+```
 
 **pi**: `~/.pi/agent/settings.json` の `skills` 配列にスキルディレクトリを追加:
 
 ```json
 {
   "skills": [
-    "~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/skills/gyazo-reader",
-    "~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/skills/gyazo-search"
+    "<REPO>/plugins/gyazo/skills/gyazo-reader",
+    "<REPO>/plugins/gyazo/skills/gyazo-search",
+    "<REPO>/plugins/gyazo/skills/gyazo-upload"
   ]
 }
 ```
@@ -41,7 +48,7 @@ Gyazoの画像取得とライブラリ検索を行うマルチエージェント
 ```yaml
 skills:
   external_dirs:
-    - ~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/skills
+    - <REPO>/plugins/gyazo/skills
 ```
 
 **トークン**: pi / Hermes はシェルの環境変数（`GYAZO_TEAMS_ACCESS_TOKEN` など）をそのまま引き継ぎます。
@@ -97,13 +104,11 @@ python <プラグインルート>/scripts/setup_token.py --team your-org --targe
 
 #### 方法B: Claudeに頼む
 
-Claude Codeで:
+Claude Codeで次のように頼むと、`~/.claude/settings.json` の `env` フィールドに書き込んでくれます:
 
 ```
-GYAZO_TEAMS_ACCESS_TOKEN=<コピーしたトークン> をsettings.jsonに追加して
+GYAZO_TEAMS_ACCESS_TOKEN=<コピーしたトークン> を ~/.claude/settings.json の env に追加して
 ```
-
-`/update-config` スキルが自動で `~/.claude/settings.json` の `env` フィールドに書き込みます。
 
 #### 方法C: 手動で settings.json を編集
 

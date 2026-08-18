@@ -21,35 +21,39 @@ Gyazo のエージェント連携プラグイン（Agent Skills 標準 / Agent P
 /plugin install gyazo
 ```
 
-### pi
+### pi / Hermes など（Claude Code 以外）
 
-`~/.pi/agent/settings.json` の `skills` 配列に追加:
+まずリポジトリを任意の場所に clone します:
+
+```bash
+git clone https://github.com/worldnine/gyazo-plugin.git
+# ghq ユーザーなら: ghq get worldnine/gyazo-plugin
+```
+
+以下、clone 先を `<REPO>` と表記します（例: `~/gyazo-plugin`）。
+
+**pi**: `~/.pi/agent/settings.json` の `skills` 配列に追加:
 
 ```json
 {
   "skills": [
-    "~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/skills/gyazo-reader",
-    "~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/skills/gyazo-search",
-    "~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/skills/gyazo-upload"
+    "<REPO>/plugins/gyazo/skills/gyazo-reader",
+    "<REPO>/plugins/gyazo/skills/gyazo-search",
+    "<REPO>/plugins/gyazo/skills/gyazo-upload"
   ]
 }
 ```
 
-### Hermes
-
-`~/.hermes/config.yaml`:
+**Hermes**: `~/.hermes/config.yaml` の `skills.external_dirs` に追加:
 
 ```yaml
 skills:
   external_dirs:
-    - ~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/skills
+    - <REPO>/plugins/gyazo/skills
 ```
 
-### その他（ghq / skills.sh）
-
-```bash
-ghq get worldnine/gyazo-plugin
-```
+> プラグインのバージョンは `.claude-plugin/marketplace.json` の `plugins[].version` が正です
+> （`metadata.version` はマーケットプレイス定義自体のバージョン）。
 
 ## セットアップ（アクセストークン）
 

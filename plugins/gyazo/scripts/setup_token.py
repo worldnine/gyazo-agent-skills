@@ -22,6 +22,8 @@ Gyazoはアクセストークンをユーザー自身が設定画面で発行す
 import argparse
 import getpass
 import json
+import os
+import shlex
 import sys
 import webbrowser
 from pathlib import Path
@@ -74,10 +76,11 @@ def save_to_settings(settings_path: Path, env_var: str, token: str) -> Path:
     settings: dict = {}
     if settings_path.exists():
         try:
-            settings = json.loads(settings_path.read_text(encoding="utf-8"))
-            if not isinstance(settings, dict):
+            loaded = json.loads(settings_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                settings = loaded
+            else:
                 print(f"警告: {settings_path} の内容がオブジェクトでないため上書きします", file=sys.stderr)
-                settings = {}
         except json.JSONDecodeError as e:
             print(f"エラー: {settings_path} のJSON解析に失敗: {e}", file=sys.stderr)
             print("ファイルを手動で修正してから再実行してください", file=sys.stderr)
@@ -93,6 +96,8 @@ def save_to_settings(settings_path: Path, env_var: str, token: str) -> Path:
         json.dumps(settings, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    # トークンを含むファイルなので所有者のみ読み書き可に
+    os.chmod(settings_path, 0o600)
     return settings_path
 
 
@@ -105,7 +110,8 @@ def append_to_shellrc(path: Path, env_var: str, token: str) -> Path:
         existing_lines = expanded.read_text(encoding="utf-8").splitlines()
 
     # 同じ env_var の export 行があれば置換、なければ末尾に追加
-    new_line = f'export {env_var}="{token}"'
+    # shlex.quote でシェル特殊文字（$ や " 等）を安全にクォートする
+    new_line = f'export {env_var}={shlex.quote(token)}'
     replaced = False
     out_lines: list[str] = []
     for line in existing_lines:
@@ -141,7 +147,7 @@ def main() -> None:
     parser.add_argument(
         "--shellrc",
         default=None,
-        help="[後方互換] 保存先をシェルrcにする（--target shellrc と同じ）",
+        help="[後方互換] 保存先をシェルrcにする（指定時は --target より優先される）",
     )
     args = parser.parse_args()
 

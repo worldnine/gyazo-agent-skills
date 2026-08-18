@@ -27,11 +27,21 @@ OCRテキスト・タイトル・元URL・アプリ名・alt_text をGyazo側で
 """
 
 import argparse
+import re
 import sys
 
 from _gyazo_common import api_get, require_access_token
 
 SEARCH_PER_PAGE = 100  # API上限
+
+# クエリ中のフィールド指定・日付演算子（title: / app: / url: / since: / until:）
+FIELD_TOKEN = re.compile(r'(?:title|app|url|since|until):(?:"[^"]*"|\S+)', re.IGNORECASE)
+
+
+def plain_keywords(query: str) -> list[str]:
+    """フィールド構文を除いたプレーンなキーワード一覧（OCR抜粋の照合用・小文字）"""
+    rest = FIELD_TOKEN.sub(" ", query)
+    return [w.lower() for w in rest.split() if w]
 
 
 def search_page(query: str, *, org: str | None, token: str, page: int) -> list[dict]:
@@ -46,21 +56,24 @@ def search_page(query: str, *, org: str | None, token: str, page: int) -> list[d
     return result
 
 
-def ocr_snippet(text: str, query_lc: str, *, ctx: int = 40) -> str:
-    """OCR本文の中でクエリ周辺を抜粋。"""
-    if not text:
+def ocr_snippet(text: str, keywords: list[str], *, ctx: int = 40) -> str:
+    """OCR本文の中でキーワード周辺を抜粋（最初にヒットしたキーワードを使用）。"""
+    if not text or not keywords:
         return ""
-    idx = text.lower().find(query_lc)
-    if idx < 0:
-        return ""
-    start = max(0, idx - ctx)
-    end = min(len(text), idx + len(query_lc) + ctx)
-    snippet = text[start:end].replace("\n", " ").strip()
-    if start > 0:
-        snippet = "…" + snippet
-    if end < len(text):
-        snippet = snippet + "…"
-    return snippet
+    text_lc = text.lower()
+    for kw in keywords:
+        idx = text_lc.find(kw)
+        if idx < 0:
+            continue
+        start = max(0, idx - ctx)
+        end = min(len(text), idx + len(kw) + ctx)
+        snippet = text[start:end].replace("\n", " ").strip()
+        if start > 0:
+            snippet = "…" + snippet
+        if end < len(text):
+            snippet = snippet + "…"
+        return snippet
+    return ""
 
 
 def main() -> None:
@@ -97,9 +110,10 @@ def main() -> None:
         print(f"『{args.query}』にマッチする画像はありませんでした")
         return
 
-    print(f"{len(results)}件マッチ（上位{min(args.limit, len(results))}件表示）")
+    # len(results) はサーバー総ヒット数ではなく取得件数（--max が上限）
+    print(f"{len(results)}件取得（上位{min(args.limit, len(results))}件表示、取得上限 --max={args.max_total}）")
     print()
-    query_lc = args.query.lower()
+    keywords = plain_keywords(args.query)
     for i, item in enumerate(results[: args.limit], start=1):
         meta = item.get("metadata") or {}
         ocr = item.get("ocr") or {}
@@ -128,7 +142,7 @@ def main() -> None:
             print(f"   title: {title}")
         if source_url:
             print(f"   source: {source_url}")
-        snippet = ocr_snippet(ocr.get("description") or "", query_lc)
+        snippet = ocr_snippet(ocr.get("description") or "", keywords)
         if snippet:
             print(f"   ocr: {snippet}")
         print()

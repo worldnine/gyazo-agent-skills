@@ -23,15 +23,15 @@ description: ユーザーが画像ファイルをGyazoにアップロードし�
 
 ## 使い方
 
-`scripts/upload_gyazo.py` はプラグインルート直下の `scripts/` にある。スキルディレクトリの場所（この SKILL.md を読んだパス）からプラグインルートを特定して実行する。
+`scripts/upload_gyazo.py` はこの SKILL.md から見て `../../scripts/upload_gyazo.py` にある
+（スキルディレクトリ → `skills/` → プラグインルート直下の `scripts/`）。
 
 ```bash
-# 汎用（プラグインルートを直接指定。ghq 管理下の例）
-python3 ~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/scripts/upload_gyazo.py /tmp/screenshot.png
-python3 ~/ghq/github.com/worldnine/gyazo-plugin/plugins/gyazo/scripts/upload_gyazo.py /tmp/screenshot.png --title "会議メモ" --app "pi" --team your-org
-
 # Claude Code のプラグイン環境では ${CLAUDE_PLUGIN_ROOT} がプラグインルートを指す
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/upload_gyazo.py" /tmp/report.png --title "報告書"
+
+# その他のエージェント: この SKILL.md のあるディレクトリから相対で解決する
+python3 "<この SKILL.md のあるディレクトリ>/../../scripts/upload_gyazo.py" /tmp/screenshot.png --title "会議メモ" --app "pi" --team your-org
 ```
 
 ### 出力例

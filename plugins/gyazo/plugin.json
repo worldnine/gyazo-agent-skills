@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "gyazo",
-  "version": "2.4.0",
-  "description": "Gyazoの画像取得とライブラリ検索。URLを貼ると画像表示（OCRテキスト込みのメタデータ取得）、Gyazo公式のサーバーサイド全文検索（OCR・タイトル・元URL・日付範囲）。個人Gyazo・Gyazo Teams両対応。Agent Skills 標準（agentskills.io）準拠のため pi / Hermes 等のエージェントでも利用可能。",
+  "version": "2.5.0",
+  "description": "Gyazoの画像取得とライブラリ検索・アップロード。Gyazo Teams対応、OCRメタデータ出力、Agent Skills標準（agentskills.io）準拠でClaude Code / pi / Hermes / Codex等で利用可。MCP不要。",
   "author": {
     "name": "Tomotaka Nagata",
     "email": "world9@world9.world"

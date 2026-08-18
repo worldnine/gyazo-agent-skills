@@ -10,12 +10,21 @@ from urllib.error import URLError, HTTPError
 
 USER_AGENT = "Mozilla/5.0 (claude-skills/gyazo)"
 
+# gyazo.com のサービス用サブドメイン（Teams の組織名ではないもの）
+SERVICE_SUBDOMAINS = {"i", "t", "thumb", "www", "api", "upload"}
+
+# image_id は hex 文字列（実IDは32桁。余裕を持って16〜64桁を許容）
+# 末尾の拡張子・クエリ・フラグメント（チャットからのコピペで付きがち）も許容する
 TEAMS_PATTERN = re.compile(
-    r"^https?://([a-zA-Z0-9_-]+)\.gyazo\.com/([a-f0-9]+)(?:\.[a-z0-9]+)?$"
+    r"^https?://([a-zA-Z0-9_-]+)\.gyazo\.com/([a-f0-9]{16,64})(?:\.[a-z0-9]+)?(?:[?#].*)?$"
 )
 PERSONAL_PATTERN = re.compile(
-    r"^https?://gyazo\.com/([a-f0-9]+)(?:\.[a-z0-9]+)?$"
+    r"^https?://gyazo\.com/([a-f0-9]{16,64})(?:\.[a-z0-9]+)?(?:[?#].*)?$"
 )
+
+
+class GyazoRequestError(Exception):
+    """HTTP取得・API呼び出しの失敗（on_error="raise" 時に送出される）"""
 
 
 def parse_gyazo_url(url: str) -> tuple[str, str | None]:
@@ -27,7 +36,7 @@ def parse_gyazo_url(url: str) -> tuple[str, str | None]:
     m = TEAMS_PATTERN.match(url)
     if m:
         org, image_id = m.group(1), m.group(2)
-        if org in ("i", "t"):
+        if org in SERVICE_SUBDOMAINS:
             return image_id, None
         return image_id, org
 
@@ -41,8 +50,23 @@ def page_url_for(image_id: str, org: str | None) -> str:
     return f"https://gyazo.com/{image_id}"
 
 
-def http_get(url: str, *, timeout: int = 15) -> bytes:
-    req = Request(url, headers={"User-Agent": USER_AGENT})
+def mask_token(text: str) -> str:
+    """メッセージ・URL中の access_token をマスクする（ログへの漏洩防止）"""
+    return re.sub(r"(access_token=)[^&\s\"']+", r"\1***", text)
+
+
+def http_get(
+    url: str,
+    *,
+    timeout: int = 15,
+    headers: dict[str, str] | None = None,
+    on_error: str = "exit",
+) -> bytes:
+    """HTTP GET。失敗時は on_error="exit" ならエラー終了、"raise" なら GyazoRequestError"""
+    req_headers = {"User-Agent": USER_AGENT}
+    if headers:
+        req_headers.update(headers)
+    req = Request(url, headers=req_headers)
     try:
         with urlopen(req, timeout=timeout) as resp:
             return resp.read()
@@ -52,13 +76,18 @@ def http_get(url: str, *, timeout: int = 15) -> bytes:
             body = e.read().decode("utf-8", errors="replace")[:200]
         except Exception:
             pass
-        msg = f"エラー: 取得に失敗しました (HTTP {e.code}): {url}"
+        msg = f"エラー: 取得に失敗しました (HTTP {e.code}): {mask_token(url)}"
         if body:
-            msg += f"\n  詳細: {body}"
+            msg += f"\n  詳細: {mask_token(body)}"
+        if on_error == "raise":
+            raise GyazoRequestError(msg) from e
         print(msg, file=sys.stderr)
         sys.exit(1)
     except URLError as e:
-        print(f"エラー: 接続に失敗しました: {e.reason}", file=sys.stderr)
+        msg = f"エラー: 接続に失敗しました: {e.reason}"
+        if on_error == "raise":
+            raise GyazoRequestError(msg) from e
+        print(msg, file=sys.stderr)
         sys.exit(1)
 
 
@@ -80,19 +109,35 @@ def require_access_token(org: str | None) -> str:
     return token
 
 
-def api_get(path: str, *, org: str | None, token: str, params: dict | None = None) -> dict | list:
-    """Gyazo API GET（access_tokenを自動付与してJSON返却）
+def api_get(
+    path: str,
+    *,
+    org: str | None,
+    token: str,
+    params: dict | None = None,
+    on_error: str = "exit",
+) -> dict | list:
+    """Gyazo API GET（Authorization: Bearer 認証でJSON返却）
 
+    トークンはURLクエリに載せず Authorization ヘッダで送る
+    （エラーメッセージ・プロキシ/サーバーログへの漏洩防止）。
     APIエンドポイントは個人/Teams問わず api.gyazo.com 統一。トークン側に
     所属（個人 or Teams）情報が紐付くため、ホスト分岐は不要。
     """
-    query = {"access_token": token}
+    url = f"https://api.gyazo.com{path}"
     if params:
-        query.update(params)
-    url = f"https://api.gyazo.com{path}?{urlencode(query)}"
-    body = http_get(url, timeout=20).decode("utf-8", errors="replace")
+        url += "?" + urlencode(params)
+    body = http_get(
+        url,
+        timeout=20,
+        headers={"Authorization": f"Bearer {token}"},
+        on_error=on_error,
+    ).decode("utf-8", errors="replace")
     try:
         return json.loads(body)
     except json.JSONDecodeError as e:
-        print(f"エラー: APIレスポンスをJSONとして解析できませんでした: {e}", file=sys.stderr)
+        msg = f"エラー: APIレスポンスをJSONとして解析できませんでした: {e}"
+        if on_error == "raise":
+            raise GyazoRequestError(msg) from e
+        print(msg, file=sys.stderr)
         sys.exit(1)
