@@ -15,7 +15,7 @@ Gyazoの画像取得・ライブラリ検索・アップロードを行うマル
 ### Claude Code
 
 ```
-/plugin marketplace add worldnine/gyazo-plugin
+/plugin marketplace add worldnine/gyazo-agent-skills
 /plugin install gyazo
 ```
 
@@ -28,7 +28,7 @@ Gyazoの画像取得・ライブラリ検索・アップロードを行うマル
 まずリポジトリを任意の場所に clone します（以下、clone 先を `<REPO>` と表記）:
 
 ```bash
-git clone https://github.com/worldnine/gyazo-plugin.git
+git clone https://github.com/worldnine/gyazo-agent-skills.git
 ```
 
 **pi**: `~/.pi/agent/settings.json` の `skills` 配列にスキルディレクトリを追加:

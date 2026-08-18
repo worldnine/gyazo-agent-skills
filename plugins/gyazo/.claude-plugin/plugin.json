@@ -1,12 +1,12 @@
 {
   "name": "gyazo",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "description": "Gyazoの画像取得とライブラリ検索・アップロード。Gyazo Teams対応、OCRメタデータ出力、Agent Skills標準（agentskills.io）準拠でClaude Code / pi / Hermes / Codex等で利用可。MCP不要。",
   "author": {
     "name": "Tomotaka Nagata",
     "email": "world9@world9.world"
   },
-  "repository": "https://github.com/worldnine/gyazo-plugin",
+  "repository": "https://github.com/worldnine/gyazo-agent-skills",
   "license": "MIT",
   "keywords": [
     "gyazo",

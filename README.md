@@ -1,6 +1,9 @@
-# gyazo-plugin
+# gyazo-agent-skills
 
 Gyazo のエージェント連携プラグイン（Agent Skills 標準 / Agent Plugins 1.0 対応）。
+
+> 非公式（unofficial）のコミュニティプラグインです。Gyazo は Nota, Inc. の商標です。
+> 公式の連携は [nota/gyazo-mcp-server](https://github.com/nota/gyazo-mcp-server) を参照してください。
 
 - **gyazo-reader**: Gyazo URL を貼ると画像を取得し、メタデータ（撮影アプリ・元URL・日時・OCRテキスト）を返す
 - **gyazo-search**: Gyazo公式のサーバーサイド全文検索（OCR・タイトル・元URL・アプリ・日付範囲）
@@ -17,7 +20,7 @@ Gyazo のエージェント連携プラグイン（Agent Skills 標準 / Agent P
 ### Claude Code
 
 ```
-/plugin marketplace add worldnine/gyazo-plugin
+/plugin marketplace add worldnine/gyazo-agent-skills
 /plugin install gyazo
 ```
 
@@ -26,11 +29,11 @@ Gyazo のエージェント連携プラグイン（Agent Skills 標準 / Agent P
 まずリポジトリを任意の場所に clone します:
 
 ```bash
-git clone https://github.com/worldnine/gyazo-plugin.git
-# ghq ユーザーなら: ghq get worldnine/gyazo-plugin
+git clone https://github.com/worldnine/gyazo-agent-skills.git
+# ghq ユーザーなら: ghq get worldnine/gyazo-agent-skills
 ```
 
-以下、clone 先を `<REPO>` と表記します（例: `~/gyazo-plugin`）。
+以下、clone 先を `<REPO>` と表記します（例: `~/gyazo-agent-skills`）。
 
 **pi**: `~/.pi/agent/settings.json` の `skills` 配列に追加:
 
