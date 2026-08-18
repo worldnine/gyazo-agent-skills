@@ -1,0 +1,19 @@
+{
+  "name": "gyazo",
+  "version": "2.4.0",
+  "description": "Gyazoの画像取得とライブラリ検索。URLを貼ると画像表示（OCRテキスト込みのメタデータ取得）、キーワードでライブラリ横断検索。個人Gyazo・Gyazo Teams両対応。Agent Skills 標準（agentskills.io）準拠。",
+  "author": {
+    "name": "Tomotaka Nagata",
+    "email": "world9@world9.world"
+  },
+  "repository": "https://github.com/worldnine/gyazo-plugin",
+  "license": "MIT",
+  "keywords": [
+    "gyazo",
+    "image",
+    "screenshot",
+    "gyazo-teams",
+    "search",
+    "upload"
+  ]
+}

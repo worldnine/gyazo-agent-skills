@@ -1,0 +1,26 @@
+{
+  "name": "gyazo-plugin",
+  "owner": {
+    "name": "Tomotaka Nagata",
+    "email": "world9@world9.world"
+  },
+  "metadata": {
+    "description": "Gyazo エージェントプラグイン（画像取得・全文検索・アップロード）",
+    "version": "1.0.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "gyazo",
+      "source": "./plugins/gyazo",
+      "description": "Gyazoの画像取得とライブラリ検索・アップロード。Gyazo Teams対応、OCRメタデータ出力、Agent Skills標準（agentskills.io）準拠でClaude Code / pi / Hermes / Codex等で利用可。MCP不要。",
+      "version": "2.4.0",
+      "keywords": ["gyazo", "image", "screenshot", "search", "ocr", "upload"],
+      "skills": [
+        "./skills/gyazo-reader",
+        "./skills/gyazo-search",
+        "./skills/gyazo-upload"
+      ]
+    }
+  ]
+}
